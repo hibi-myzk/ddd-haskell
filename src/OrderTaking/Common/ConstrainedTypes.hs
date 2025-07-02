@@ -52,9 +52,9 @@ createDecimal fieldName ctor minVal maxVal d
 matchesPattern :: String -> String -> Bool
 matchesPattern str pattern
   | pattern == ".+@.+" = '@' `elem` str && length str > 2  -- Simple email check
-  | pattern == "\\d{5}" = length str == 5 && all (`elem` "0123456789") str  -- 5 digits
-  | pattern == "W\\d{4}" = length str == 5 && head str == 'W' && all (`elem` "0123456789") (tail str)  -- Widget code
-  | pattern == "G\\d{3}" = length str == 4 && head str == 'G' && all (`elem` "0123456789") (tail str)  -- Gizmo code
+  | pattern == "\\d{5}" = length str == 5 && all (\c -> c `elem` ['0'..'9']) str  -- 5 digits
+  | pattern == "W\\d{4}" = length str == 5 && head str == 'W' && all (\c -> c `elem` ['0'..'9']) (tail str)  -- Widget code
+  | pattern == "G\\d{3}" = length str == 4 && head str == 'G' && all (\c -> c `elem` ['0'..'9']) (tail str)  -- Gizmo code
   | otherwise = True  -- Default to true for other patterns
 
 -- | Create a constrained string using the constructor provided

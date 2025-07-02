@@ -17,13 +17,17 @@ I have successfully converted the F# Domain Modeling Made Functional codebase to
 ### Workflow Types
 - ✅ **PublicTypes.hs** - Public API types for the PlaceOrder workflow
 - ✅ **InternalTypes.hs** - Internal workflow step types
-- ✅ **Implementation.hs** - Core business logic structure (stub implementation)
+- ✅ **Implementation.hs** - Complete PlaceOrder workflow implementation
 - ✅ **Pricing.hs** - Pricing logic module
 
 ### Application
 - ✅ **Main.hs** - Demo application showing the types in action
 - ✅ **order-taking.cabal** - Project configuration
 - ✅ **README.md** - Comprehensive documentation
+
+### Serialization & API
+- ✅ **Dto.hs** - Data Transfer Objects for serialization (converted from PlaceOrder.Dto.fs)
+- ✅ **Api.hs** - JSON API layer for HTTP requests/responses (converted from PlaceOrder.Api.fs)
 
 ## Key Achievements
 

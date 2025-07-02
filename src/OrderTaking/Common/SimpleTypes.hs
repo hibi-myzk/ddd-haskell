@@ -1,5 +1,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 -- | Simple types and constrained types related to the OrderTaking domain
 -- Converted from F# Common.SimpleTypes.fs
@@ -63,6 +64,8 @@ module OrderTaking.Common.SimpleTypes
 import OrderTaking.Result (ValidationError(..), Result)
 import OrderTaking.Common.ConstrainedTypes
 import Data.Word (Word8)
+import Data.Aeson (ToJSON, FromJSON)
+import GHC.Generics (Generic)
 
 -- | Constrained to be 50 chars or less, not null
 newtype String50 = String50 String
@@ -128,7 +131,10 @@ newtype BillingAmount = BillingAmount Double
 data PdfAttachment = PdfAttachment
   { pdfName :: String
   , pdfBytes :: [Word8]
-  } deriving (Show, Eq)
+  } deriving (Show, Eq, Generic)
+
+instance ToJSON PdfAttachment
+instance FromJSON PdfAttachment
 
 -- | Promotion code
 newtype PromotionCode = PromotionCode String
