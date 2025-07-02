@@ -1,0 +1,55 @@
+cabal-version: 2.2
+name: order-taking
+version: 0.1.0.0
+synopsis: Domain-driven order taking system converted from F#
+description: A Haskell implementation of the order-taking domain model from "Domain Modeling Made Functional"
+license: MIT
+author: Converted from F# original
+maintainer: example@example.com
+category: Business
+build-type: Simple
+
+common shared-properties
+  default-language: Haskell2010
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates
+               -Wincomplete-uni-patterns -Wmissing-export-lists
+               -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
+
+library
+  import: shared-properties
+  exposed-modules:
+    OrderTaking.Common.SimpleTypes
+    OrderTaking.Common.CompoundTypes
+    OrderTaking.Common.ConstrainedTypes
+    OrderTaking.PlaceOrder.PublicTypes
+    OrderTaking.PlaceOrder.InternalTypes
+    OrderTaking.PlaceOrder.Implementation
+    OrderTaking.PlaceOrder.Pricing
+    OrderTaking.Result
+  hs-source-dirs: src
+  build-depends:
+    base >= 4.14 && < 5,
+    text >= 1.2 && < 2.1,
+    mtl >= 2.2 && < 2.4,
+    regex-tdfa >= 1.3 && < 1.4,
+    async >= 2.2 && < 2.3,
+    transformers >= 0.5 && < 0.7
+
+executable order-taking-exe
+  import: shared-properties
+  main-is: Main.hs
+  hs-source-dirs: app
+  build-depends:
+    base,
+    order-taking
+
+test-suite order-taking-test
+  import: shared-properties
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  hs-source-dirs: test
+  build-depends:
+    base,
+    order-taking,
+    hspec >= 2.7 && < 2.12,
+    QuickCheck >= 2.14 && < 2.15
