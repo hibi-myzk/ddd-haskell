@@ -98,30 +98,40 @@ data OrderQuantity = Unit UnitQuantity | Kilogram KilogramQuantity
 
 ## Key Features Implemented
 
-### ✅ Completed
-- [x] Core domain types with smart constructors
-- [x] Validation utilities and constrained types
-- [x] Error handling with Either-based Result types
-- [x] Basic type structure for all workflow components
-- [x] Async result utilities
-- [x] Pattern matching for business rules
+### ✅ Fully Implemented & Working
+- [x] **Core domain types with smart constructors** - All constrained types (String50, EmailAddress, ProductCode, etc.)
+- [x] **Comprehensive validation utilities** - Pattern matching, range validation, format validation
+- [x] **Error handling with Either-based Result types** - Complete monadic error handling
+- [x] **Complete PlaceOrder workflow implementation** - Full end-to-end order processing
+- [x] **Validation workflow** - Customer info, addresses, order lines with business rule validation
+- [x] **Pricing calculations with promotions** - Standard pricing, promotional pricing, line totals
+- [x] **Shipping cost calculations** - Zone-based shipping (local, remote, international)
+- [x] **VIP shipping logic** - Free shipping for VIP customers
+- [x] **Order acknowledgment generation** - Email acknowledgment with HTML content
+- [x] **Complete event creation** - Domain events for acknowledgment, shipping, and billing
+- [x] **Async result utilities** - IO-based async operations with error handling
+- [x] **Pattern matching for business rules** - Address classification, product code validation
+- [x] **Working demo application** - Complete order processing demonstration
 
-### 🚧 Partially Implemented
-- [x] Basic pricing logic structure
-- [x] Workflow type signatures
-- [ ] Complete validation implementation
-- [ ] Full pricing calculations
-- [ ] Shipping logic
-- [ ] Event creation
+### ✅ Advanced Features Implemented
+- [x] **Smart constructors for all domain types** - Type-safe creation with validation
+- [x] **Constrained primitive types** - String50, EmailAddress, ZipCode, UsStateCode, etc.
+- [x] **Product code validation** - Widget (W+4 digits) and Gizmo (G+3 digits) formats
+- [x] **Quantity validation** - Unit quantities (1-1000) and Kilogram quantities (0.05-100.00)
+- [x] **Price calculations** - Multiplication, summation with overflow protection
+- [x] **Address validation** - US state codes, zip code format validation
+- [x] **Promotion code handling** - HALF, QUARTER price promotions
+- [x] **Shipping zone classification** - US local/remote states vs international
+- [x] **PDF attachment generation** - Order confirmation PDF structure
+- [x] **Multiple event types** - OrderAcknowledgmentSent, ShippableOrderPlaced, BillableOrderPlaced
 
-### 📋 TODO (Full Implementation)
-- [ ] Complete validation workflow
-- [ ] Pricing calculations with promotions
-- [ ] Shipping cost calculations
-- [ ] Order acknowledgment generation
-- [ ] Event sourcing implementation
-- [ ] Integration tests
-- [ ] Property-based testing with QuickCheck
+### 🚧 Areas for Enhancement (Optional)
+- [ ] **Property-based testing with QuickCheck** - Comprehensive test coverage
+- [ ] **Integration with external services** - Real address validation, email sending
+- [ ] **Performance optimizations** - Lazy evaluation improvements
+- [ ] **Extended promotion logic** - More complex promotional rules
+- [ ] **Audit logging** - Detailed operation tracking
+- [ ] **Configuration management** - External configuration for business rules
 
 ## Running the Demo
 
