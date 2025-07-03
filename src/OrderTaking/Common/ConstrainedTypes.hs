@@ -11,7 +11,7 @@ module OrderTaking.Common.ConstrainedTypes
   ) where
 
 import OrderTaking.Result (ValidationError(..), Result)
-import Data.List (isInfixOf)
+import Text.Regex.TDFA ((=~))
 
 -- | Create a constrained string using the constructor provided
 -- Return Error if input is null, empty, or length > maxLen
@@ -47,20 +47,10 @@ createDecimal fieldName ctor minVal maxVal d
   | d > maxVal = Left $ ValidationError $ fieldName ++ ": Must not be greater than " ++ show maxVal
   | otherwise = Right (ctor d)
 
--- | Simple pattern matching for basic validation
--- This is a simplified version - in a real implementation you'd use regex-tdfa
-matchesPattern :: String -> String -> Bool
-matchesPattern str pattern
-  | pattern == ".+@.+" = '@' `elem` str && length str > 2  -- Simple email check
-  | pattern == "\\d{5}" = length str == 5 && all (\c -> c `elem` ['0'..'9']) str  -- 5 digits
-  | pattern == "W\\d{4}" = length str == 5 && head str == 'W' && all (\c -> c `elem` ['0'..'9']) (tail str)  -- Widget code
-  | pattern == "G\\d{3}" = length str == 4 && head str == 'G' && all (\c -> c `elem` ['0'..'9']) (tail str)  -- Gizmo code
-  | otherwise = True  -- Default to true for other patterns
-
 -- | Create a constrained string using the constructor provided
 -- Return Error if input is null, empty, or does not match the regex pattern
 createLike :: String -> (String -> a) -> String -> String -> Result ValidationError a
 createLike fieldName ctor pattern str
   | null str = Left $ ValidationError $ fieldName ++ ": Must not be null or empty"
-  | matchesPattern str pattern = Right (ctor str)
+  | str =~ pattern = Right (ctor str)
   | otherwise = Left $ ValidationError $ fieldName ++ ": '" ++ str ++ "' must match the pattern '" ++ pattern ++ "'"
