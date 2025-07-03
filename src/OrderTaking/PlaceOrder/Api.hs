@@ -28,17 +28,14 @@ module OrderTaking.PlaceOrder.Api
   , sendOrderAcknowledgment
   ) where
 
-import Data.Aeson (ToJSON, FromJSON, encode, decode)
 import qualified Data.ByteString.Lazy.Char8 as L8
+import Data.Aeson (encode, decode)
 import OrderTaking.Common.SimpleTypes
-import OrderTaking.Common.CompoundTypes
 import OrderTaking.PlaceOrder.InternalTypes
-import OrderTaking.PlaceOrder.PublicTypes (UnvalidatedOrder, PlaceOrderEvent, PlaceOrderError(..))
-import OrderTaking.PlaceOrder.Dto (OrderFormDto, fromPlaceOrderEvent, fromPlaceOrderError, toUnvalidatedOrder)
+import OrderTaking.PlaceOrder.PublicTypes (PlaceOrderEvent, PlaceOrderError(..))
+import OrderTaking.PlaceOrder.Dto (fromPlaceOrderEvent, fromPlaceOrderError, toUnvalidatedOrder)
 import qualified OrderTaking.PlaceOrder.Implementation as Implementation
 import qualified OrderTaking.PlaceOrder.Pricing as PricingModule
-import OrderTaking.Result (AsyncResult, asyncResultOfResult)
-import Control.Monad.IO.Class (liftIO)
 
 -- ======================================================
 -- Types

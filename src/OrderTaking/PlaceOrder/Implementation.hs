@@ -246,7 +246,7 @@ priceOrder getPricingFunction validatedOrder =
          in case sumPrices linePrices of
               Left (ValidationError err) -> Left (PricingError err)
               Right amountToBill' -> 
-                let pricedOrder = PricedOrder
+                let pricedOrder' = PricedOrder
                       { pricedOrderId = validatedOrderId validatedOrder
                       , pricedCustomerInfo = validatedCustomerInfo validatedOrder
                       , pricedShippingAddress = validatedShippingAddress validatedOrder
@@ -255,7 +255,7 @@ priceOrder getPricingFunction validatedOrder =
                       , pricedLines = linesWithComments
                       , pricedPricingMethod = validatedPricingMethod validatedOrder
                       }
-                in Right pricedOrder
+                in Right pricedOrder'
 
 -- ---------------------------
 -- Shipping step
@@ -277,22 +277,22 @@ classifyAddress address
 
 -- | Calculate shipping cost based on address
 calculateShippingCost :: CalculateShippingCost
-calculateShippingCost pricedOrder =
-  case classifyAddress (pricedShippingAddress pricedOrder) of
+calculateShippingCost pricedOrder' =
+  case classifyAddress (pricedShippingAddress pricedOrder') of
     UsLocalState -> unsafeCreatePrice 5.0
     UsRemoteState -> unsafeCreatePrice 10.0
     International -> unsafeCreatePrice 20.0
 
 -- | Add shipping info to order
 addShippingInfoToOrder :: AddShippingInfoToOrder
-addShippingInfoToOrder calculateShippingCost' pricedOrder =
-  let shippingInfo = ShippingInfo
+addShippingInfoToOrder calculateShippingCost' pricedOrder' =
+  let shippingInfo' = ShippingInfo
         { shippingMethod = Fedex24
-        , shippingCost = calculateShippingCost' pricedOrder
+        , shippingCost = calculateShippingCost' pricedOrder'
         }
   in PricedOrderWithShippingMethod
-       { shippingInfo = shippingInfo
-       , pricedOrder = pricedOrder
+       { shippingInfo = shippingInfo'
+       , pricedOrder = pricedOrder'
        }
 
 -- ---------------------------

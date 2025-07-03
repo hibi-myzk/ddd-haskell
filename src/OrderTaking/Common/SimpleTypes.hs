@@ -6,23 +6,23 @@
 -- Converted from F# Common.SimpleTypes.fs
 module OrderTaking.Common.SimpleTypes
   ( -- * Basic constrained types
-    String50(..)
-  , EmailAddress(..)
-  , VipStatus(..)
-  , ZipCode(..)
-  , UsStateCode(..)
-  , OrderId(..)
-  , OrderLineId(..)
-  , WidgetCode(..)
-  , GizmoCode(..)
-  , ProductCode(..)
-  , UnitQuantity(..)
-  , KilogramQuantity(..)
-  , OrderQuantity(..)
-  , Price(..)
-  , BillingAmount(..)
-  , PdfAttachment(..)
-  , PromotionCode(..)
+    String50 -- note: no (..) means constructor is not exported
+  , EmailAddress
+  , VipStatus(..) -- keeping enum constructors exported
+  , ZipCode 
+  , UsStateCode
+  , OrderId
+  , OrderLineId
+  , WidgetCode
+  , GizmoCode
+  , ProductCode(..) -- keeping sum type constructors exported
+  , UnitQuantity
+  , KilogramQuantity
+  , OrderQuantity(..) -- keeping sum type constructors exported
+  , Price
+  , BillingAmount
+  , PdfAttachment(..) -- keeping record constructors exported
+  , PromotionCode(..) -- keeping constructor exported
     -- * Smart constructors
   , createString50
   , createString50Option
@@ -166,7 +166,7 @@ createVipStatus fieldName str = case str of
 
 -- | Create a ZipCode from a string
 createZipCode :: String -> String -> Result ValidationError ZipCode
-createZipCode fieldName = createLike fieldName ZipCode "\\d{5}"
+createZipCode fieldName = createLike fieldName ZipCode "[0-9]{5}"
 
 -- | Create a UsStateCode from a string
 createUsStateCode :: String -> String -> Result ValidationError UsStateCode
@@ -190,11 +190,11 @@ createOrderLineId fieldName = createString fieldName OrderLineId 50
 
 -- | Create a WidgetCode from a string
 createWidgetCode :: String -> String -> Result ValidationError WidgetCode
-createWidgetCode fieldName = createLike fieldName WidgetCode "W\\d{4}"
+createWidgetCode fieldName = createLike fieldName WidgetCode "W[0-9]{4}"
 
 -- | Create a GizmoCode from a string
 createGizmoCode :: String -> String -> Result ValidationError GizmoCode
-createGizmoCode fieldName = createLike fieldName GizmoCode "G\\d{3}"
+createGizmoCode fieldName = createLike fieldName GizmoCode "G[0-9]{3}"
 
 -- | Create a ProductCode from a string
 createProductCode :: String -> String -> Result ValidationError ProductCode
