@@ -41,6 +41,9 @@ import OrderTaking.Result hiding (sequence)
 import qualified OrderTaking.Result as Result
 import Data.Maybe (catMaybes)
 import Text.Printf (printf)
+import Control.Monad.Trans.Except (ExceptT(..), runExceptT, throwE, withExceptT)
+import Control.Monad.IO.Class (liftIO)
+import Control.Concurrent.Async (async)
 
 -- ======================================================
 -- Section 2 : Implementation
@@ -386,35 +389,31 @@ createEvents pricedOrder' acknowledgmentEventOpt =
 -- ---------------------------
 
 -- | Main PlaceOrder workflow
-placeOrder :: CheckProductCodeExists    -- dependency
-           -> CheckAddressExists        -- dependency
-           -> GetPricingFunction        -- dependency
-           -> CalculateShippingCost     -- dependency
-           -> CreateOrderAcknowledgmentLetter  -- dependency
-           -> SendOrderAcknowledgment   -- dependency
-           -> PlaceOrder                -- definition of function
-placeOrder checkProductExists checkAddressExists getPricingFunction' calculateShippingCost' createOrderAcknowledgmentLetter sendOrderAcknowledgment unvalidatedOrder = do
-  -- Validate order
-  validatedOrderResult <- validateOrder checkProductExists checkAddressExists unvalidatedOrder
-  validatedOrder' <- case validatedOrderResult of
-    Left err -> return $ Left $ ValidationErr err
-    Right vo -> return $ Right vo
-  
-  case validatedOrder' of
-    Left err -> return $ Left err
-    Right vo -> do
-      -- Price order
-      let pricedOrderResult = priceOrder getPricingFunction' vo
-      case pricedOrderResult of
-        Left err -> return $ Left $ PricingErr err
-        Right po -> do
-          -- Add shipping info
-          let pricedOrderWithShipping = addShippingInfoToOrder calculateShippingCost' po
-          let pricedOrderWithFreeVipShipping = freeVipShipping pricedOrderWithShipping
-          
-          -- Acknowledge order
-          let acknowledgementOption = acknowledgeOrder createOrderAcknowledgmentLetter sendOrderAcknowledgment pricedOrderWithFreeVipShipping
-          
-          -- Create events
-          let events = createEvents po acknowledgementOption
-          return $ Right events
+placeOrder :: CheckProductCodeExists
+           -> CheckAddressExists
+           -> GetPricingFunction
+           -> CalculateShippingCost
+           -> CreateOrderAcknowledgmentLetter
+           -> SendOrderAcknowledgment
+           -> PlaceOrder
+placeOrder checkProductExists checkAddressExists getPricingFunction' calculateShippingCost' createOrderAcknowledgmentLetter sendOrderAcknowledgment unvalidatedOrder =
+  runExceptT $ do
+    -- Validate order
+    validatedOrder <- ExceptT $ asyncResultMapError ValidationErr $
+      validateOrder checkProductExists checkAddressExists unvalidatedOrder
+
+    -- Price order
+    pricedOrder' <- ExceptT $ asyncResultMapError PricingErr $ asyncResultOfResult $
+      priceOrder getPricingFunction' validatedOrder
+
+    -- Add shipping info
+    let pricedOrderWithShipping = addShippingInfoToOrder calculateShippingCost' pricedOrder'
+        pricedOrderWithFreeVipShipping = freeVipShipping pricedOrderWithShipping
+
+    -- Acknowledge order
+    let acknowledgementOption = acknowledgeOrder createOrderAcknowledgmentLetter sendOrderAcknowledgment pricedOrderWithFreeVipShipping
+
+    -- Create events
+    let events = createEvents pricedOrder' acknowledgementOption
+
+    return events
