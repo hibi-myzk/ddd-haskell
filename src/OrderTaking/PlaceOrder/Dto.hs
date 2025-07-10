@@ -2,18 +2,46 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE DeriveGeneric #-}
 
-module OrderTaking.PlaceOrder.Dto where
+module OrderTaking.PlaceOrder.Dto
+  ( CustomerInfoDto(..)
+  , toUnvalidatedCustomerInfo
+  , toCustomerInfo
+  , fromCustomerInfo
+  , AddressDto(..)
+  , toUnvalidatedAddress
+  , toAddress
+  , fromAddress
+  , OrderFormLineDto(..)
+  , toUnvalidatedOrderLine
+  , PricedOrderLineDto(..)
+  , fromPricedOrderLine
+  , OrderFormDto(..)
+  , toUnvalidatedOrder
+  , ShippableOrderLineDto(..)
+  , ShippableOrderPlacedDto(..)
+  , fromShippableOrderLine
+  , fromShippableOrderPlaced
+  , BillableOrderPlacedDto(..)
+  , fromBillableOrderPlaced
+  , OrderAcknowledgmentSentDto(..)
+  , fromOrderAcknowledgmentSent
+  , PlaceOrderEventDto
+  , PlaceOrderEventValue(..)
+  , fromPlaceOrderEvent
+  , PlaceOrderErrorDto(..)
+  , fromPlaceOrderError
+  ) where
 
 import qualified Data.Map as Map
 import Data.Map (Map)
 import Data.Maybe (fromMaybe)
-import Data.Aeson (ToJSON, FromJSON, genericToJSON, genericParseJSON, defaultOptions)
+import Data.Aeson (ToJSON, FromJSON)
 import GHC.Generics (Generic)
 import OrderTaking.Common.SimpleTypes
 import OrderTaking.Common.CompoundTypes
 import qualified OrderTaking.PlaceOrder.InternalTypes as InternalTypes
 import qualified OrderTaking.PlaceOrder.PublicTypes as PublicTypes
-import OrderTaking.PlaceOrder.InternalTypes (PricedOrderLine(..), PricedOrderProductLine(..))
+import OrderTaking.PlaceOrder.InternalTypes (PricedOrderLine(..))
 import OrderTaking.PlaceOrder.PublicTypes (UnvalidatedCustomerInfo(..), UnvalidatedAddress(..), UnvalidatedOrderLine(..), UnvalidatedOrder(..), ShippableOrderLine(..), ShippableOrderPlaced(..), BillableOrderPlaced(..), OrderAcknowledgmentSent(..), PlaceOrderEvent(..), PlaceOrderError(..), PricingError(..))
 import OrderTaking.Result
 
@@ -33,7 +61,7 @@ import OrderTaking.Result
 
 -- Helper function to get the value from a Maybe, and if Nothing, use the defaultValue
 defaultIfNothing :: a -> Maybe a -> a
-defaultIfNothing defaultValue = fromMaybe defaultValue
+defaultIfNothing = fromMaybe
 
 -- ===============================================
 -- DTO for CustomerInfo
@@ -131,7 +159,7 @@ toAddress AddressDto{..} = do
   zipCode <- createZipCode "ZipCode" addressZipCode
   state <- createUsStateCode "State" addressState
   country <- createString50 "Country" addressCountry
-  
+
   -- combine the components to create the domain object
   let address = Address
         { addressLine1 = line1

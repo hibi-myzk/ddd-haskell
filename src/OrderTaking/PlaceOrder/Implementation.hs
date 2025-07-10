@@ -39,11 +39,9 @@ import OrderTaking.PlaceOrder.InternalTypes
 import OrderTaking.PlaceOrder.Pricing (createPricingMethod)
 import OrderTaking.Result hiding (sequence)
 import qualified OrderTaking.Result as Result
-import Data.Maybe (catMaybes)
+import Data.Maybe (mapMaybe)
 import Text.Printf (printf)
-import Control.Monad.Trans.Except (ExceptT(..), runExceptT, throwE, withExceptT)
-import Control.Monad.IO.Class (liftIO)
-import Control.Concurrent.Async (async)
+import Control.Monad.Trans.Except (ExceptT(..), runExceptT)
 
 -- ======================================================
 -- Section 2 : Implementation
@@ -55,12 +53,12 @@ import Control.Concurrent.Async (async)
 
 -- | Convert unvalidated customer info to validated customer info
 toCustomerInfo :: UnvalidatedCustomerInfo -> Result ValidationError CustomerInfo
-toCustomerInfo unvalidatedCustomerInfo = do
-  firstName' <- createString50 "FirstName" (unvalidatedFirstName unvalidatedCustomerInfo)
-  lastName' <- createString50 "LastName" (unvalidatedLastName unvalidatedCustomerInfo)
-  emailAddress' <- createEmailAddress "EmailAddress" (unvalidatedEmailAddress unvalidatedCustomerInfo)
-  vipStatus' <- createVipStatus "VipStatus" (unvalidatedVipStatus unvalidatedCustomerInfo)
-  
+toCustomerInfo unvalidatedCustomerInfo' = do
+  firstName' <- createString50 "FirstName" (unvalidatedFirstName unvalidatedCustomerInfo')
+  lastName' <- createString50 "LastName" (unvalidatedLastName unvalidatedCustomerInfo')
+  emailAddress' <- createEmailAddress "EmailAddress" (unvalidatedEmailAddress unvalidatedCustomerInfo')
+  vipStatus' <- createVipStatus "VipStatus" (unvalidatedVipStatus unvalidatedCustomerInfo')
+
   let customerInfo = CustomerInfo
         { customerName = PersonalName { firstName = firstName', lastName = lastName' }
         , emailAddress = emailAddress'
@@ -79,7 +77,7 @@ toAddress (CheckedAddress unvalidatedAddress) = do
   zipCode' <- createZipCode "ZipCode" (unvalidatedZipCode unvalidatedAddress)
   state' <- createUsStateCode "State" (unvalidatedState unvalidatedAddress)
   country' <- createString50 "Country" (unvalidatedCountry unvalidatedAddress)
-  
+
   let address = Address
         { addressLine1 = addressLine1'
         , addressLine2 = addressLine2'
@@ -103,11 +101,11 @@ toCheckedAddress checkAddress address = do
 
 -- | Convert string to OrderId
 toOrderId :: String -> Result ValidationError OrderId
-toOrderId orderId = createOrderId "OrderId" orderId
+toOrderId = createOrderId "OrderId"
 
 -- | Helper function for validateOrder - convert string to OrderLineId
 toOrderLineId :: String -> Result ValidationError OrderLineId
-toOrderLineId orderLineId = createOrderLineId "OrderLineId" orderLineId
+toOrderLineId = createOrderLineId "OrderLineId"
 
 -- | Helper function for validateOrder - convert and validate ProductCode
 toProductCode :: CheckProductCodeExists -> String -> Result ValidationError ProductCode
@@ -121,8 +119,7 @@ toProductCode checkProductCodeExists productCode = do
 
 -- | Helper function for validateOrder - convert quantity
 toOrderQuantity :: ProductCode -> Double -> Result ValidationError OrderQuantity
-toOrderQuantity productCode quantity = 
-  createOrderQuantity "OrderQuantity" productCode quantity
+toOrderQuantity = createOrderQuantity "OrderQuantity"
 
 -- | Helper function for validateOrder - convert order line
 toValidatedOrderLine :: CheckProductCodeExists -> UnvalidatedOrderLine -> Result ValidationError ValidatedOrderLine
@@ -130,7 +127,7 @@ toValidatedOrderLine checkProductExists unvalidatedOrderLine = do
   orderLineId' <- toOrderLineId (unvalidatedOrderLineId unvalidatedOrderLine)
   productCode' <- toProductCode checkProductExists (unvalidatedProductCode unvalidatedOrderLine)
   quantity' <- toOrderQuantity productCode' (unvalidatedQuantity unvalidatedOrderLine)
-  
+
   let validatedOrderLine = ValidatedOrderLine
         { validatedOrderLineId = orderLineId'
         , validatedProductCode = productCode'
@@ -141,68 +138,38 @@ toValidatedOrderLine checkProductExists unvalidatedOrderLine = do
 -- | Main validation function
 validateOrder :: ValidateOrder
 validateOrder checkProductCodeExists checkAddressExists unvalidatedOrder = do
-  -- Convert OrderId
-  orderIdResult <- asyncResultOfResult $ toOrderId (unvalidatedOrderId unvalidatedOrder)
-  orderId' <- case orderIdResult of
-    Left err -> return $ Left err
-    Right oid -> return $ Right oid
-  
-  -- Convert CustomerInfo
-  customerInfoResult <- asyncResultOfResult $ toCustomerInfo (unvalidatedCustomerInfo unvalidatedOrder)
-  customerInfo' <- case customerInfoResult of
-    Left err -> return $ Left err
-    Right ci -> return $ Right ci
-  
-  -- Check and convert shipping address
-  checkedShippingAddressResult <- toCheckedAddress checkAddressExists (unvalidatedShippingAddress unvalidatedOrder)
-  checkedShippingAddress <- case checkedShippingAddressResult of
-    Left err -> return $ Left err
-    Right addr -> return $ Right addr
-  
-  shippingAddress' <- case checkedShippingAddress of
-    Left err -> return $ Left err
-    Right addr -> do
-      shippingAddressResult <- asyncResultOfResult $ toAddress addr
-      case shippingAddressResult of
-        Left err -> return $ Left err
-        Right addr' -> return $ Right addr'
-  
-  -- Check and convert billing address
-  checkedBillingAddressResult <- toCheckedAddress checkAddressExists (unvalidatedBillingAddress unvalidatedOrder)
-  billingAddress' <- case checkedBillingAddressResult of
-    Left err -> return $ Left err
-    Right addr -> do
-      billingAddressResult <- asyncResultOfResult $ toAddress addr
-      case billingAddressResult of
-        Left err -> return $ Left err
-        Right addr' -> return $ Right addr'
-  
-  -- Convert order lines
-  linesResult <- asyncResultOfResult $ Result.sequence $ map (toValidatedOrderLine checkProductCodeExists) (unvalidatedLines unvalidatedOrder)
-  lines' <- case linesResult of
-    Left err -> return $ Left err
-    Right ls -> return $ Right ls
-  
-  -- Create pricing method
-  let pricingMethod = createPricingMethod (unvalidatedPromotionCode unvalidatedOrder)
-  
-  -- Combine all results
-  case (orderId', customerInfo', shippingAddress', billingAddress', lines') of
-    (Right oid, Right ci, Right sa, Right ba, Right ls) -> do
-      let validatedOrder = ValidatedOrder
-            { validatedOrderId = oid
-            , validatedCustomerInfo = ci
-            , validatedShippingAddress = sa
-            , validatedBillingAddress = ba
-            , validatedLines = ls
-            , validatedPricingMethod = pricingMethod
-            }
-      return $ Right validatedOrder
-    (Left err, _, _, _, _) -> return $ Left err
-    (_, Left err, _, _, _) -> return $ Left err
-    (_, _, Left err, _, _) -> return $ Left err
-    (_, _, _, Left err, _) -> return $ Left err
-    (_, _, _, _, Left err) -> return $ Left err
+  runExceptT $ do
+    -- Convert OrderId
+    orderId <- ExceptT $ asyncResultOfResult $
+      toOrderId (unvalidatedOrderId unvalidatedOrder)
+
+    -- Convert CustomerInfo
+    customerInfo <- ExceptT $ asyncResultOfResult $
+      toCustomerInfo (unvalidatedCustomerInfo unvalidatedOrder)
+
+    -- Check and convert shipping address
+    checkedShippingAddress <- ExceptT $ toCheckedAddress checkAddressExists (unvalidatedShippingAddress unvalidatedOrder)
+    shippingAddress' <- ExceptT $ asyncResultOfResult $ toAddress checkedShippingAddress
+
+    -- Check and convert billing address
+    checkedBillingAddress <- ExceptT $ toCheckedAddress checkAddressExists (unvalidatedBillingAddress unvalidatedOrder)
+    billingAddress' <- ExceptT $ asyncResultOfResult $ toAddress checkedBillingAddress
+
+    -- Convert order lines
+    lines' <- ExceptT $ asyncResultOfResult $ Result.sequence $ map (toValidatedOrderLine checkProductCodeExists) (unvalidatedLines unvalidatedOrder)
+
+    -- Create pricing method
+    let pricingMethod = createPricingMethod (unvalidatedPromotionCode unvalidatedOrder)
+
+    let validatedOrder = ValidatedOrder
+          { validatedOrderId = orderId
+          , validatedCustomerInfo = customerInfo
+          , validatedShippingAddress = shippingAddress'
+          , validatedBillingAddress = billingAddress'
+          , validatedLines = lines'
+          , validatedPricingMethod = pricingMethod
+          }
+    return validatedOrder
 
 -- ---------------------------
 -- PriceOrder step
@@ -216,7 +183,7 @@ toPricedOrderLine getProductPrice validatedOrderLine = do
   linePrice' <- case multiplyPrice qty price of
     Left (ValidationError err) -> Left (PricingError err)
     Right lp -> Right lp
-  
+
   let pricedLine = PricedOrderProductLine
         { pricedOrderLineId = validatedOrderLineId validatedOrderLine
         , pricedProductCode = validatedProductCode validatedOrderLine
@@ -227,10 +194,10 @@ toPricedOrderLine getProductPrice validatedOrderLine = do
 
 -- | Add comment line if needed based on pricing method
 addCommentLine :: PricingMethod -> [PricedOrderLine] -> [PricedOrderLine]
-addCommentLine Standard lines = lines
-addCommentLine (Promotion (PromotionCode promoCode)) lines =
+addCommentLine Standard lines' = lines'
+addCommentLine (Promotion (PromotionCode promoCode)) lines' =
   let commentLine = CommentLine $ "Applied promotion " ++ promoCode
-  in lines ++ [commentLine]
+  in lines' ++ [commentLine]
 
 -- | Get the price from a priced order line
 getLinePrice :: PricedOrderLine -> Price
@@ -239,16 +206,16 @@ getLinePrice (CommentLine _) = unsafeCreatePrice 0.0
 
 -- | Main pricing function
 priceOrder :: PriceOrder
-priceOrder getPricingFunction validatedOrder = 
+priceOrder getPricingFunction validatedOrder =
   let getProductPrice = getPricingFunction (validatedPricingMethod validatedOrder)
   in case Result.sequence $ map (toPricedOrderLine getProductPrice) (validatedLines validatedOrder) of
        Left err -> Left err
-       Right lines' -> 
+       Right lines' ->
          let linesWithComments = addCommentLine (validatedPricingMethod validatedOrder) lines'
              linePrices = map getLinePrice linesWithComments
          in case sumPrices linePrices of
               Left (ValidationError err) -> Left (PricingError err)
-              Right amountToBill' -> 
+              Right amountToBill' ->
                 let pricedOrder' = PricedOrder
                       { pricedOrderId = validatedOrderId validatedOrder
                       , pricedCustomerInfo = validatedCustomerInfo validatedOrder
@@ -269,7 +236,7 @@ data ShippingZone = UsLocalState | UsRemoteState | International
 
 classifyAddress :: Address -> ShippingZone
 classifyAddress address
-  | getString50 (country address) == "US" = 
+  | getString50 (country address) == "US" =
       case getUsStateCode (state address) of
         "CA" -> UsLocalState
         "OR" -> UsLocalState
@@ -307,7 +274,7 @@ freeVipShipping :: FreeVipShipping
 freeVipShipping order =
   let updatedShippingInfo = case vipStatus (pricedCustomerInfo (pricedOrder order)) of
         Normal -> shippingInfo order
-        Vip -> (shippingInfo order) 
+        Vip -> (shippingInfo order)
           { shippingCost = unsafeCreatePrice 0.0
           , shippingMethod = Fedex24
           }
@@ -327,7 +294,7 @@ acknowledgeOrder createAcknowledgmentLetter sendAcknowledgment pricedOrderWithSh
         , ackLetter = letter
         }
   in case sendAcknowledgment acknowledgment of
-       Sent -> 
+       Sent ->
          let event = Public.OrderAcknowledgmentSent
                { Public.ackOrderId = pricedOrderId pricedOrder'
                , Public.ackEmailAddress = emailAddress (pricedCustomerInfo pricedOrder')
@@ -352,7 +319,7 @@ createShippingEvent :: PricedOrder -> ShippableOrderPlaced
 createShippingEvent placedOrder = ShippableOrderPlaced
   { shippableOrderId = pricedOrderId placedOrder
   , shippingAddress = pricedShippingAddress placedOrder
-  , shipmentLines = catMaybes $ map makeShipmentLine (pricedLines placedOrder)
+  , shipmentLines = mapMaybe makeShipmentLine (pricedLines placedOrder)
   , pdf = PdfAttachment
       { pdfName = printf "Order%s.pdf" (getOrderId (pricedOrderId placedOrder))
       , pdfBytes = []
@@ -381,7 +348,7 @@ createEvents :: CreateEvents
 createEvents pricedOrder' acknowledgmentEventOpt =
   let acknowledgmentEvents = listOfOption $ fmap AcknowledgmentSentEvent acknowledgmentEventOpt
       shippingEvents = [ShippableOrderPlacedEvent $ createShippingEvent pricedOrder']
-      billingEvents = listOfOption $ fmap BillableOrderPlacedEvent $ createBillingEvent pricedOrder'
+      billingEvents = listOfOption (BillableOrderPlacedEvent <$> createBillingEvent pricedOrder')
   in acknowledgmentEvents ++ shippingEvents ++ billingEvents
 
 -- ---------------------------

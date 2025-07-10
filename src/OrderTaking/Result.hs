@@ -1,7 +1,3 @@
-{-# LANGUAGE DeriveFunctor #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE OverloadedStrings #-}
-
 -- | Result type and utilities for error handling
 -- Converted from F# Result.fs
 module OrderTaking.Result
@@ -44,6 +40,7 @@ module OrderTaking.Result
 
 import Prelude hiding (filter, sequence)
 import qualified Prelude
+import qualified Control.Monad
 
 -- | Result type is just Either with success on the Right
 type Result e a = Either e a
@@ -97,11 +94,11 @@ lift4 _ _ _ _ (Left err) = Left err
 
 -- | Apply a monadic function with two parameters
 bind2 :: (a -> b -> Either e c) -> Either e a -> Either e b -> Either e c
-bind2 f x y = lift2 f x y >>= id
+bind2 f x y = Control.Monad.join (lift2 f x y)
 
 -- | Apply a monadic function with three parameters
 bind3 :: (a -> b -> c -> Either e d) -> Either e a -> Either e b -> Either e c -> Either e d
-bind3 f x y z = lift3 f x y z >>= id
+bind3 f x y z = Control.Monad.join (lift3 f x y z)
 
 -- | Predicate that returns true on success
 isOk :: Either e a -> Bool
@@ -114,7 +111,7 @@ isError = not . isOk
 
 -- | Lift a given predicate into a predicate that works on Results
 filter :: (a -> Bool) -> Either e a -> Bool
-filter pred (Right x) = pred x
+filter pred' (Right x) = pred' x
 filter _ (Left _) = True
 
 -- | Convert an Option into a Result
@@ -159,8 +156,7 @@ sequenceValidation (Left errs1 : xs) = case sequenceValidation xs of
 -- | Lift a function to AsyncResult
 asyncResultMap :: (a -> b) -> AsyncResult e a -> AsyncResult e b
 asyncResultMap f asyncResult = do
-  result <- asyncResult
-  return $ fmap f result
+  fmap f <$> asyncResult
 
 -- | Map over the error case
 asyncResultMapError :: (e1 -> e2) -> AsyncResult e1 a -> AsyncResult e2 a
@@ -210,5 +206,4 @@ asyncResultOfResult = return
 -- | Lift an IO into an AsyncResult
 asyncResultOfAsync :: IO a -> AsyncResult e a
 asyncResultOfAsync action = do
-  x <- action
-  return (Right x)
+  Right <$> action

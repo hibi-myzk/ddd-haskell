@@ -18,7 +18,7 @@ createPricingMethod promotionCode
 -- | Get pricing function based on pricing method
 -- This is a stub implementation
 getPricingFunction :: GetStandardPrices -> GetPromotionPrices -> GetPricingFunction
-getPricingFunction standardPrices promoPrices = \pricingMethod ->
+getPricingFunction standardPrices promoPrices pricingMethod =
   case pricingMethod of
     Standard -> standardPrices ()
     Promotion promotionCode -> 
