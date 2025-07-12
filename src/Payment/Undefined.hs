@@ -1,4 +1,4 @@
-﻿module OrderTaking.Undefined where
+﻿module Payment.Undefined where
 
 import Data.Void (Void)
 
